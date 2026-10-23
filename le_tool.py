@@ -35,6 +35,15 @@ plt.rcParams.update({"font.family": "Arial", "font.size": 9, "axes.grid": True, 
 MPA = lambda psi: np.asarray(psi, float) / PSI_PER_MPA
 M3MIN = lambda bpm: np.asarray(bpm, float) / BPM_PER_M3MIN
 MM = lambda inch: np.asarray(inch, float) * 25.4
+LANG = "en"
+
+
+def t(en, ru):
+    return ru if LANG == "ru" else en
+
+
+def nm(name):
+    return name.replace("heel", "пятка").replace("toe", "носок").replace("tapered", "переменный") if LANG == "ru" else name
 
 
 def le_plot(ax, st, D, Cd, Q, rho, title):
@@ -44,14 +53,14 @@ def le_plot(ax, st, D, Cd, Q, rho, title):
     qq = np.linspace(0, 2.2 * Q / len(st.clusters), 200)
     for i, c in enumerate(st.clusters):
         p = entry_pressure(qq, c.sigma_psi, c.n_perf, D[i], Cd[i], c.k_nwb, c.beta_nwb, c.k_net, c.m_net, rho)
-        ax.plot(M3MIN(qq), MPA(p), lw=1.4, label=c.name)
+        ax.plot(M3MIN(qq), MPA(p), lw=1.4, label=nm(c.name))
         ax.plot(M3MIN(q_op[i]), MPA(P_op), "o", ms=5, color=ax.lines[-1].get_color())
     ax.axhline(MPA(P_op), color="k", ls="--", lw=1)
     ax.axvline(M3MIN(Q / len(st.clusters)), color="grey", ls=":", lw=1)
-    ax.text(0.01, 0.97, f"common operating point P = {MPA(P_op):.2f} MPa\nUI = {uniformity(q_op)[0]:.3f}",
+    ax.text(0.01, 0.97, t(f"common operating point P = {MPA(P_op):.2f} MPa\nUI = {uniformity(q_op)[0]:.3f}", f"общая рабочая точка P = {MPA(P_op):.2f} МПа\nUI = {uniformity(q_op)[0]:.3f}"),
             transform=ax.transAxes, va="top", fontsize=8, bbox=dict(boxstyle="round", fc="white", ec="0.8"))
-    ax.set_xlabel("cluster rate, m³/min (dotted = ideal equal share)")
-    ax.set_ylabel("casing pressure at cluster, MPa")
+    ax.set_xlabel(t("cluster rate, m³/min (dotted = ideal equal share)", "расход кластера, м³/мин (пунктир — равная доля)"))
+    ax.set_ylabel(t("casing pressure at cluster, MPa", "давление в обсадке у кластера, МПа"))
     ax.set_title(title)
     ax.set_ylim(MPA(min(c.sigma_psi for c in st.clusters) - 200), MPA(P_op + 800))
     return q_op, P_op
@@ -62,7 +71,10 @@ def main():
     ap.add_argument("case")
     ap.add_argument("--out", default="out")
     ap.add_argument("--no-mc", action="store_true")
+    ap.add_argument("--lang", default="en", choices=["en", "ru"])
     args = ap.parse_args()
+    global LANG
+    LANG = args.lang
 
     cfg, st, ep = load_case(args.case)
     os.makedirs(args.out, exist_ok=True)
@@ -76,29 +88,29 @@ def main():
 
     # ---- 01 conceptual LE plot: start vs end of stage
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.6))
-    q0, P0 = le_plot(axes[0], st, a["d_in"], a["cd"], Q_main, rho0, "Start of stage (no erosion)")
-    q1, P1 = le_plot(axes[1], st, sim["D"][-1], sim["Cd"][-1], Q_main, rho0, "End of stage (eroded perforations)")
+    q0, P0 = le_plot(axes[0], st, a["d_in"], a["cd"], Q_main, rho0, t("Start of stage (no erosion)", "Начало стадии (без эрозии)"))
+    q1, P1 = le_plot(axes[1], st, sim["D"][-1], sim["Cd"][-1], Q_main, rho0, t("End of stage (eroded perforations)", "Конец стадии (размытые перфорации)"))
     axes[0].legend(fontsize=7, loc="lower right")
-    fig.suptitle("Limited-entry operating point: cluster entry curves vs common casing pressure")
+    fig.suptitle(t("Limited-entry operating point: cluster entry curves vs common casing pressure", "Рабочая точка Limited Entry: кривые входа кластеров и общее давление в обсадке"))
     fig.tight_layout()
     fig.savefig(os.path.join(args.out, "01_le_operating_point.png"), dpi=150)
     plt.close(fig)
 
     # ---- 02 erosion traces
-    t = sim["t"]
+    tt = sim["t"]
     share = sim["q"] / sim["q"].sum(axis=1, keepdims=True)
     fig, ax = plt.subplots(2, 2, figsize=(12, 7), sharex=True)
     for i, n in enumerate(names):
-        ax[0, 0].plot(t, MPA(sim["dp_perf"][:, i]), label=n)
-        ax[0, 1].plot(t, 100 * share[:, i])
-        ax[1, 0].plot(t, sim["Cd"][:, i])
-        ax[1, 1].plot(t, MM(sim["D"][:, i]))
-    ax[0, 0].set_ylabel("perforation friction, MPa"); ax[0, 0].legend(fontsize=7)
-    ax[0, 1].set_ylabel("rate share, %"); ax[0, 1].axhline(100 / len(names), color="k", ls=":", lw=1)
-    ax[1, 0].set_ylabel("discharge coefficient Cd"); ax[1, 1].set_ylabel("perforation diameter, mm")
+        ax[0, 0].plot(tt, MPA(sim["dp_perf"][:, i]), label=nm(n))
+        ax[0, 1].plot(tt, 100 * share[:, i])
+        ax[1, 0].plot(tt, sim["Cd"][:, i])
+        ax[1, 1].plot(tt, MM(sim["D"][:, i]))
+    ax[0, 0].set_ylabel(t("perforation friction, MPa", "трение на перфорациях, МПа")); ax[0, 0].legend(fontsize=7)
+    ax[0, 1].set_ylabel(t("rate share, %", "доля расхода, %")); ax[0, 1].axhline(100 / len(names), color="k", ls=":", lw=1)
+    ax[1, 0].set_ylabel(t("discharge coefficient Cd", "коэффициент расхода Cd")); ax[1, 1].set_ylabel(t("perforation diameter, mm", "диаметр перфорации, мм"))
     for x in ax[1]:
-        x.set_xlabel("time, min")
-    fig.suptitle("Coupled erosion and flow distribution through the stage")
+        x.set_xlabel(t("time, min", "время, мин"))
+    fig.suptitle(t("Coupled erosion and flow distribution through the stage", "Связанные эрозия и распределение потока по ходу стадии"))
     fig.tight_layout()
     fig.savefig(os.path.join(args.out, "02_stage_erosion.png"), dpi=150)
     plt.close(fig)
@@ -129,18 +141,19 @@ def main():
             r = fit_step_down(Q, P, rho0, s["d_in"], isip_bh=s.get("isip_bh"), beta=0.5)
             res[key] = r
             qq = np.linspace(0, Q.max() * 1.05, 100)
-            ax.plot(M3MIN(Q), MPA(P - r.p0), "ko", label="measured BHP − ISIP")
-            ax.plot(M3MIN(qq), MPA(r.a_perf * qq ** 2 + r.b_nwb * qq ** r.beta), "k-", label="total fit")
-            ax.plot(M3MIN(qq), MPA(r.a_perf * qq ** 2), "C0--", label="perforations  a·Q²")
-            ax.plot(M3MIN(qq), MPA(r.b_nwb * qq ** r.beta), "C3--", label=f"near-wellbore  b·Q^{r.beta:.2f}")
+            ax.plot(M3MIN(Q), MPA(P - r.p0), "ko", label=t("measured BHP − ISIP", "замер BHP − ISIP"))
+            ax.plot(M3MIN(qq), MPA(r.a_perf * qq ** 2 + r.b_nwb * qq ** r.beta), "k-", label=t("total fit", "подгонка, всего"))
+            ax.plot(M3MIN(qq), MPA(r.a_perf * qq ** 2), "C0--", label=t("perforations  a·Q²", "перфорации  a·Q²"))
+            ax.plot(M3MIN(qq), MPA(r.b_nwb * qq ** r.beta), "C3--", label=t(f"near-wellbore  b·Q^{r.beta:.2f}", f"призабойная зона  b·Q^{r.beta:.2f}"))
             n_txt = ", ".join(f"Cd {cd:.2f}: {n:.1f}" for cd, n in r.n_open_table.items())
             aeff_mm2 = r.a_eff * 645.16
             ci = [x * 645.16 if math.isfinite(x) else float("inf") for x in r.a_eff_ci]
-            ax.set_title(f"{key}: A_eff = n·Cd·d² = {aeff_mm2:,.0f} mm²  (90% CI {ci[0]:,.0f}–{ci[1]:,.0f})",
+            ttl = "тест до проппанта" if key == "steps_pre" else "тест в конце стадии"
+            ax.set_title(t(f"{key}: A_eff = n·Cd·d² = {aeff_mm2:,.0f} mm²  (90% CI {ci[0]:,.0f}–{ci[1]:,.0f})", f"{ttl}: A_eff = n·Cd·d² = {aeff_mm2:,.0f} мм²  (90% ДИ {ci[0]:,.0f}–{ci[1]:,.0f})"),
                          fontsize=8.5)
-            ax.text(0.01, 0.97, f"open perfs by assumed Cd → {n_txt}\nresolvable: {r.resolvable}",
+            ax.text(0.01, 0.97, t(f"open perfs by assumed Cd → {n_txt}\nresolvable: {r.resolvable}", f"открыто при принятом Cd → {n_txt}\nтест разрешим: {'да' if r.resolvable else 'нет'}"),
                     transform=ax.transAxes, va="top", fontsize=7.5, bbox=dict(boxstyle="round", fc="white", ec="0.8"))
-            ax.set_xlabel("rate, m³/min"); ax.set_ylabel("pressure loss, MPa"); ax.legend(fontsize=7, loc="lower right")
+            ax.set_xlabel(t("rate, m³/min", "расход, м³/мин")); ax.set_ylabel(t("pressure loss, MPa", "потери давления, МПа")); ax.legend(fontsize=7, loc="lower right")
             summary.setdefault("sdt", {})[key] = {
                 "a_perf_MPa_per_(m3/min)^2": k_field_to_si(r.a_perf, 2),
                 "b_nwb_MPa_per_(m3/min)^0.5": k_field_to_si(r.b_nwb, r.beta),
@@ -178,12 +191,11 @@ def main():
         fig, ax = plt.subplots(figsize=(9, 4.5))
         for r in rows:
             ax.scatter(r["dP_perf_end_MPa"], r["UI_P10"], s=60)
-            ax.annotate(r["design"], (r["dP_perf_end_MPa"], r["UI_P10"]), fontsize=8, xytext=(5, 3),
+            ax.annotate(nm(r["design"]), (r["dP_perf_end_MPa"], r["UI_P10"]), fontsize=8, xytext=(5, 3),
                         textcoords="offset points")
-        ax.set_xlabel("perforation friction at END of stage (after erosion), MPa")
-        ax.set_ylabel("P10 proppant uniformity index (1 − CoV)")
-        ax.set_title(f"Design screen: {mc.get('n_real', 200)} stress realisations, "
-                     f"sd = {MPA(mc.get('sigma_sd_psi', 150)):.1f} MPa")
+        ax.set_xlabel(t("perforation friction at END of stage (after erosion), MPa", "трение на перфорациях в КОНЦЕ стадии (после эрозии), МПа"))
+        ax.set_ylabel(t("P10 proppant uniformity index (1 − CoV)", "P10 индекса равномерности по проппанту (1 − CoV)"))
+        ax.set_title(t(f"Design screen: {mc.get('n_real', 200)} stress realisations, sd = {MPA(mc.get('sigma_sd_psi', 150)):.1f} MPa", f"Сравнение дизайнов: {mc.get('n_real', 200)} реализаций напряжений, σ = {MPA(mc.get('sigma_sd_psi', 150)):.1f} МПа"))
         fig.tight_layout()
         fig.savefig(os.path.join(args.out, "04_design_screen.png"), dpi=150)
         plt.close(fig)

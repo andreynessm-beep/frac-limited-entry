@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Limited Entry Calculator</title>
+<title>Калькулятор Limited Entry</title>
 <meta name="description" content="Plug & Perf limited-entry calculator: perforation friction, erosion, SRT/SDT calibration and cluster flow distribution. SI units. Excel + Python.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
@@ -39,10 +39,19 @@ code{font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--acc2
 .kpi b{font-size:22px;display:block}
 .kpi span{font-size:13px;color:var(--muted)}
 small{color:var(--muted)}
+.top{display:flex;justify-content:flex-end;margin-bottom:12px}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
+.lang button{font:600 13px Inter,Arial,sans-serif;border:0;background:transparent;color:var(--muted);padding:6px 14px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--acc);color:#fff}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="wrap">
+<div class="top"><div class="lang" role="group" aria-label="Language">
+<button type="button" data-set="ru" aria-pressed="true">RU</button><button type="button" data-set="en" aria-pressed="false">EN</button>
+</div></div>
+<div data-l="en" hidden>
 <h1>Limited Entry Calculator — Plug &amp; Perf</h1>
 <p class="sub">Perforation friction · erosion over time · SRT/SDT calibration · cluster flow distribution (conceptual LE plot). SI units. Excel + Python.</p>
 <div class="note">All numbers on this page come from a <b>synthetic demo case</b> to show the workflow. Replace them with real well data.</div>
@@ -50,7 +59,8 @@ small{color:var(--muted)}
 <h2>Download</h2>
 <div class="dl">
 <a href="LE_Calculator.xlsx" download><b>LE_Calculator.xlsx</b><span>Excel tool · live formulas, no macros</span></a>
-<a href="frac-limited-entry.zip" download><b>Full package (.zip)</b><span>Excel + Python engine + demo case + checks</span></a>
+<a href="LE_Calculator_RU.xlsx" download><b>LE_Calculator_RU.xlsx</b><span>Russian version of the Excel tool</span></a>
+<a href="frac-limited-entry.zip" download><b>Full package (.zip)</b><span>Excel (RU + EN) + Python engine + manual + checks</span></a>
 <a href="PROPOSAL.md"><b>PROPOSAL.md</b><span>Scope, data needed, sources</span></a>
 <a href="https://github.com/andreynessm-beep/frac-limited-entry"><b>Source code</b><span>GitHub repository</span></a>
 </div>
@@ -118,5 +128,101 @@ dD/dt = α·C·v² &nbsp;&nbsp; dCd/dt = β·C·v²·(1 − Cd/Cd_max)</div>
 <li>PEER consortium (NSI), <a href="https://ogj.com/drilling-production/article/14279282/perforation-erosion-consortium-studies-limited-entry-treatments">OGJ 2022</a>: a 17% increase in perforation diameter → over 62% loss of limited-entry pressure.</li>
 </ul>
 </div>
+
+<div data-l="ru">
+<h1>Калькулятор Limited Entry — Plug &amp; Perf</h1>
+<p class="sub">Трение на перфорациях · эрозия во времени · калибровка по SRT/SDT · распределение потока по кластерам (концептуальный LE-график). Единицы СИ. Excel + Python.</p>
+<div class="note">Все цифры на странице — из <b>синтетического демо-кейса</b>, чтобы показать порядок работы. Замените их данными реальной скважины.</div>
+
+<h2>Скачать</h2>
+<div class="dl">
+<a href="LE_Calculator_RU.xlsx" download><b>LE_Calculator_RU.xlsx</b><span>Excel-калькулятор на русском · живые формулы, без макросов</span></a>
+<a href="manual.html"><b>Инструкция</b><span>Полное руководство по пользованию</span></a>
+<a href="frac-limited-entry.zip" download><b>Полный пакет (.zip)</b><span>Excel (RU + EN) + Python-движок + инструкция + проверки</span></a>
+<a href="https://github.com/andreynessm-beep/frac-limited-entry"><b>Исходный код</b><span>Репозиторий GitHub</span></a>
+</div>
+
+<h2>Что умеет</h2>
+<div class="card tbl"><table>
+<tr><th>Задача</th><th>Где</th><th>Как</th></tr>
+<tr><td>Трение на перфорациях ΔP_perf (число отверстий, диаметр, Cd)</td><td>Excel → Design, Inputs</td><td>Уравнение истечения через отверстие; матрица трения «отверстия × диаметр»; число отверстий под целевое ΔP</td></tr>
+<tr><td>Эрозия перфораций (рост Cd и диаметра во времени)</td><td>Excel → Erosion · Python</td><td>Модель Long et al. (2018): скругление кромки (быстро, растёт Cd) + рост диаметра (медленно), пошагово по графику закачки</td></tr>
+<tr><td>Калибровка по SRT/SDT</td><td>Excel → SDT, Erosion · Python</td><td>Подгонка BHP − ISIP = a·Q² + b·Q^β (a, b ≥ 0); коэффициент эрозии по тестам до проппанта и в конце стадии</td></tr>
+<tr><td>Распределение потока, общая рабочая точка</td><td>Excel → Distribution · Python</td><td>Одинаковое давление в обсадке для всех кластеров, Σq = Q; кривые входа σᵢ + ΔP_perf + ΔP_nwb против линии общего давления</td></tr>
+</table></div>
+
+<div class="eq">ΔP_perf = 8·ρ·q² / (π²·n²·d⁴·Cd²) &nbsp;→&nbsp; ΔP[МПа] = 225.16·ρ·q² / (n²·d⁴·Cd²) &nbsp;(q м³/мин, d мм, ρ кг/м³)<br>
+dD/dt = α·C·v² &nbsp;&nbsp; dCd/dt = β·C·v²·(1 − Cd/Cd_max)</div>
+
+<h2>Чем лучше обычной LE-таблицы</h2>
+<ol>
+<li><b>Учтена проблема идентифицируемости.</b> Ступенчатый тест даёт только произведение <code>n·Cd·d²</code>: 30 отверстий при Cd 0.56 и 19.8 отверстия при Cd 0.85 дают одинаковый тест. Поэтому инструмент выдаёт A_eff и таблицу N(Cd). Порядок калибровки: тест до проппанта фиксирует n → тест в конце стадии измеряет эрозию → кривая трения внутри стадии отделяет скругление кромки от роста диаметра.</li>
+<li><b>Эрозия связана с распределением.</b> Кластер, который берёт больше смеси, размывается быстрее, теряет трение и забирает ещё больше. Модели с «одной средней перфорацией» этот разгон не видят.</li>
+<li><b>Проверка разрешимости.</b> Для каждого SDT — флаг «разрешим/нет» и 90% бутстрэп-интервал: после сильного размыва остаточное трение может утонуть в шуме давления.</li>
+<li><b>Монте-Карло по дизайнам</b> с неопределённостью напряжений по кластерам: трение в начале и конце стадии, % сохранённого трения, P10 равномерности по проппанту, вероятность достичь цели.</li>
+<li><b>Трекер трения внутри стадии</b> (Python): A_eff(t) по давлению закачки, приведённый к неубывающей кривой (изотоническая регрессия). Провалы сигнала указывают на бридж, скрин-аут или рост net pressure, а не на перфорации.</li>
+</ol>
+
+<h2>Результаты демо (синтетика)</h2>
+<div class="kpi">
+<div><b>0.95 → 0.81</b><span>равномерность по жидкости, начало → конец одной стадии, перфорации одинаковые</span></div>
+<div><b>10.1 → 3.9 МПа</b><span>трение на перфорациях, 6 × 6 отверстий по 10.2 мм</span></div>
+<div><b>22.7 → 5.1 МПа</b><span>XLE 6 × 4 по 10.2 мм: сохраняет 22%, но в абсолюте трения всё равно больше всех</span></div>
+<div><b>30.2 при 30</b><span>открытых перфораций восстановлено по синтетическому SDT</span></div>
+</div>
+
+<figure><img src="out/01_le_operating_point.png" alt="Концептуальный LE-график в начале и в конце стадии"><figcaption>Концептуальный LE-график: кривые входа кластеров против общего давления в обсадке, в начале стадии и после эрозии. Подписи на графиках — на английском.</figcaption></figure>
+<figure><img src="out/02_stage_erosion.png" alt="Трение, доля расхода, Cd и диаметр во времени"><figcaption>Связанные эрозия и распределение: трение падает, доли расхода по кластерам расходятся за стадию.</figcaption></figure>
+<figure><img src="out/03_sdt_fit.png" alt="Подгонка ступенчатых тестов до и после проппанта"><figcaption>Подгонка SDT: перфорации (Q²) и призабойная зона (Q^0.5); число открытых перфораций — для каждого принятого Cd.</figcaption></figure>
+<figure><img src="out/04_design_screen.png" alt="Сравнение дизайнов Монте-Карло"><figcaption>Сравнение дизайнов: трение в конце стадии против P10 равномерности по проппанту, 200 реализаций напряжений.</figcaption></figure>
+
+<h2>Какие данные нужны для калибровки реальной скважины (3–10 стадий)</h2>
+<ol>
+<li>Ступенчатый тест до проппанта: расход и забойное давление на каждой ступени (или устьевое + TVD + трение в трубах) и ISIP.</li>
+<li>Ступенчатый тест в конце стадии, в том же формате.</li>
+<li>График закачки: длительность, расход, концентрация проппанта по шагам.</li>
+<li>Кривая давления закачки (опционально — именно она разделяет скругление кромки и рост диаметра).</li>
+<li>Диаметр входного отверстия перфоратора, число отверстий на кластер, MD кластеров, напряжения по кластерам или их неопределённость.</li>
+<li>Опционально: DAS, видео перфораций или замеры эрозии — для калибровки смещения к пятке/носку.</li>
+</ol>
+
+<h2>Проверка</h2>
+<ul>
+<li>Повторяет опубликованный пример ResFrac (80 bpm, 32 × 0.4", 10 ppg, Cd 0.85): 803 psi против ~800 psi.</li>
+<li>Синтетический SDT с известным ответом: открытых перфораций 30.2 при истине 30; тортуозность в пределах 10%.</li>
+<li>Калибровка эрозии на синтетических стадиях: α и β восстановлены с точностью до 1%.</li>
+<li>Excel и Python на одних данных: рабочее давление, расходы по кластерам, коэффициенты SDT, состояние после эрозии и откалиброванный α совпадают лучше чем на 0.01%.</li>
+</ul>
+
+<h2>Источники</h2>
+<ul>
+<li>ResFrac, <i>The A to Z Guide to Accelerating Continuous Improvement with ResFrac</i>, <a href="https://arxiv.org/abs/2205.14820">arXiv:2205.14820</a>.</li>
+<li>Long, Liu, Xu et al., <i>A Perforation-Erosion Model for Hydraulic-Fracturing Applications</i>, SPE Prod &amp; Oper 33(4), 2018; Long &amp; Xu, SPE J. 2017 (SPE-185173-PA).</li>
+<li><i>Construction and Application of a Quantitative Perforation Erosion Model Based on Field Experiments</i>, <a href="https://doi.org/10.3390/ma18112507">Materials 2025, 18, 2507</a>.</li>
+<li>Crump &amp; Conway (SPE 15474): Cd 0.56 → 0.89 по аппроксимации Romero (2000), цит. по <a href="https://doi.org/10.3390/pr10061058">Processes 2022, 10, 1058</a>.</li>
+<li>Mondal et al., <i>Advancements in Step Down Tests…</i>, SPE-204147-MS, 2021.</li>
+<li>Merry &amp; Dalamarinis, оценка перфораций по трубным волнам, SPE-201686-MS, 2020.</li>
+<li>Консорциум PEER (NSI), <a href="https://ogj.com/drilling-production/article/14279282/perforation-erosion-consortium-studies-limited-entry-treatments">OGJ 2022</a>: рост диаметра перфорации на 17% → потеря более 62% LE-давления.</li>
+</ul>
+</div>
+</div>
+<script>
+(function(){
+  var KEY = "le-lang";
+  function setLang(l){
+    document.querySelectorAll("[data-l]").forEach(function(el){ el.hidden = el.getAttribute("data-l") !== l; });
+    document.querySelectorAll("[data-set]").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-set") === l ? "true" : "false"); });
+    document.documentElement.lang = l;
+    document.title = l === "ru" ? "Калькулятор Limited Entry" : "Limited Entry Calculator";
+    try { localStorage.setItem(KEY, l); } catch (e) {}
+  }
+  var q = new URLSearchParams(location.search).get("lang");
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  var l = q || saved || "ru";
+  setLang(l === "ru" ? "ru" : "en");
+  document.querySelectorAll("[data-set]").forEach(function(b){ b.addEventListener("click", function(){ setLang(b.getAttribute("data-set")); }); });
+})();
+</script>
 </body>
 </html>

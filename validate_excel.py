@@ -14,7 +14,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from le_engine import *
 
-XL = os.path.join(HERE, "LE_Calculator.xlsx")
+RU = len(sys.argv) > 1 and sys.argv[1].lower() == "ru"
+XL = os.path.join(HERE, "LE_Calculator_RU.xlsx" if RU else "LE_Calculator.xlsx")
+SHEETS = {}
+if RU:
+    import xl_ru
+    SHEETS = {k.upper(): v.upper() for k, v in xl_ru.SHEETS.items()}
+
+
+def loc(ref):
+    sh, cell = ref.upper().split("!")
+    return SHEETS.get(sh, sh) + "!" + cell
 xl = formulas.ExcelModel().loads(XL).finish()
 sol = xl.calculate()
 
@@ -30,11 +40,12 @@ for k, v in sol.items():
 
 
 def g(ref):
-    return vals[ref.upper()]
+    return vals[loc(ref)]
 
 
 # ---- formula errors (only intentional #N/A chart helpers allowed)
-allowed = ("CHARTDATA!", "EROSION!O", "SDT!H", "SDT!Q")
+allowed = tuple(loc(x + "A1")[:-2] if x.endswith("!") else loc(x + "1")[:-1]
+                for x in ("CHARTDATA!", "EROSION!O", "SDT!H", "SDT!Q"))
 bad, na = {}, 0
 for k, v in vals.items():
     s = str(v)

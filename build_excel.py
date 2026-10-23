@@ -1,10 +1,12 @@
 """
-Builds LE_Calculator.xlsx — SI, live formulas only (no macros, no hardcoded results).
-    python build_excel.py
+Builds the SI calculator workbook — live formulas only (no macros, no hardcoded results).
+    python build_excel.py        -> LE_Calculator.xlsx     (English)
+    python build_excel.py ru     -> LE_Calculator_RU.xlsx  (Russian: sheets, labels, switches)
 Units: MPa, m3/min, mm, kg/m3, m, min. Proppant concentration = kg per m3 of clean fluid.
 """
 import json
 import os
+import sys
 
 from openpyxl import Workbook
 from openpyxl.chart import ScatterChart, Reference, Series
@@ -15,7 +17,30 @@ from openpyxl.utils import get_column_letter as L
 from openpyxl.worksheet.datavalidation import DataValidation
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "LE_Calculator.xlsx")
+RU = len(sys.argv) > 1 and sys.argv[1].lower() == "ru"
+OUT = os.path.join(HERE, "LE_Calculator_RU.xlsx" if RU else "LE_Calculator.xlsx")
+if RU:
+    import xl_ru
+
+
+def sn(name):
+    """Sheet title for the current language."""
+    return xl_ru.SHEETS[name] if RU else name
+
+
+def T(v):
+    """Translate a label, or rewrite sheet names / quoted literals inside a formula."""
+    if not RU or not isinstance(v, str):
+        return v
+    if v.startswith("=") or v.startswith('"'):
+        for en, ru in xl_ru.SHEETS.items():
+            if en != ru:
+                v = v.replace(en + "!", "'" + ru + "'!")
+        for en, ru in xl_ru.LITERALS:
+            v = v.replace(en, ru)
+        return v
+    return xl_ru.TR.get(v, v)
+
 case = json.load(open(os.path.join(HERE, "case_example.json"), encoding="utf-8"))
 
 NC = 12                      # max clusters
@@ -41,14 +66,14 @@ wb = Workbook()
 
 def put(ws, ref, val, font=None, fill=None, fmt=None, comment=None):
     c = ws[ref]
-    c.value = val
+    c.value = T(val)
     c.font = font or f_norm
     if fill:
         c.fill = fill
     if fmt:
         c.number_format = fmt
     if comment:
-        c.comment = Comment(comment, "LE calculator")
+        c.comment = Comment(T(comment), "LE calculator")
     return c
 
 
@@ -60,7 +85,7 @@ def inp(ws, ref, val, fmt=None, comment=None, key=False):
 
 def hdr(ws, row, col, labels, width=None):
     for i, t in enumerate(labels):
-        c = ws.cell(row=row, column=col + i, value=t)
+        c = ws.cell(row=row, column=col + i, value=T(t))
         c.font = f_bold
         c.fill = fill_hdr
         c.alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
@@ -68,7 +93,7 @@ def hdr(ws, row, col, labels, width=None):
 
 
 def fcell(ws, r, c, formula, fmt=None, fill=None, font=None):
-    cell = ws.cell(row=r, column=c, value=formula)
+    cell = ws.cell(row=r, column=c, value=T(formula))
     cell.font = font or f_norm
     if fmt:
         cell.number_format = fmt
@@ -79,7 +104,7 @@ def fcell(ws, r, c, formula, fmt=None, fill=None, font=None):
 
 # =====================================================================  README
 ws = wb.active
-ws.title = "README"
+ws.title = sn("README")
 ws.column_dimensions["A"].width = 120
 lines = [
     ("Limited Entry Calculator — Plug & Perf (SI units)", f_title),
@@ -119,13 +144,15 @@ lines = [
     ("Default α = 3.1e-13 m²·s/kg and β = 1.0e-10 m·s/kg: lab/field-scale range in 'Construction and Application of a Quantitative Perforation Erosion Model Based on Field Experiments', Materials 2025, 18, 2507 (α 1.0e-13…4.5e-13, β 5.7e-11…9.5e-10). CALIBRATE on your SDTs.", None),
     ("Step-down tests: Mondal et al., 'Advancements in Step Down Tests to Guide Perforation Cluster Design and Limited Entry Pressure Intensities', SPE-204147-MS, 2021.", None),
 ]
+if RU:
+    lines = [(t, {"title": f_title, "bold": f_bold}.get(k)) for t, k in xl_ru.README]
 for i, (t, fnt) in enumerate(lines, start=1):
     c = ws.cell(row=i, column=1, value=t)
     c.font = fnt or f_norm
     c.alignment = Alignment(wrap_text=True, vertical="top")
 
 # =====================================================================  Inputs
-wi = wb.create_sheet("Inputs")
+wi = wb.create_sheet(sn("Inputs"))
 wi.column_dimensions["A"].width = 40
 for col, w in zip("BCDEFGHIJK", (14, 12, 10, 11, 9, 16, 12, 12, 12, 14)):
     wi.column_dimensions[col].width = w
@@ -167,9 +194,9 @@ put(wi, "A21", "Shot-weighted entry hole d0, mm")
 fcell(wi, 21, 2, f"=SUMPRODUCT(D{CL0}:D{CL0+NC-1},E{CL0}:E{CL0+NC-1})/B19", "0.00")
 
 for ref in ("B13",):
-    dv = DataValidation(type="list", formula1='"Yes,No"', allow_blank=False); wi.add_data_validation(dv); dv.add(ref)
-dv = DataValidation(type="list", formula1='"Start,End"'); wi.add_data_validation(dv); dv.add("B15")
-dv = DataValidation(type="list", formula1='"Design,SDT"'); wi.add_data_validation(dv); dv.add("B16")
+    dv = DataValidation(type="list", formula1=T('"Yes,No"'), allow_blank=False); wi.add_data_validation(dv); dv.add(ref)
+dv = DataValidation(type="list", formula1=T('"Start,End"')); wi.add_data_validation(dv); dv.add("B15")
+dv = DataValidation(type="list", formula1=T('"Design,SDT"')); wi.add_data_validation(dv); dv.add("B16")
 
 hdr(wi, CL0 - 1, 1, ["Cluster", "MD, m", "Stress σ, MPa", "Shots n", "Entry hole d, mm", "Cd",
                      "k_nwb, MPa/(m³/min)^β", "d used, mm", "Cd used", "σ (active, min)", "P at equal share, MPa", "σ (active, max)"])
@@ -193,7 +220,7 @@ for j in range(NC):
 put(wi, f"A{CL0+NC+1}", "End state uses the lumped erosion result (Erosion sheet) for every cluster; per-cluster coupled erosion is in le_engine.py.", f_note)
 
 # =====================================================================  LE_Curves
-wc = wb.create_sheet("LE_Curves")
+wc = wb.create_sheet(sn("LE_Curves"))
 put(wc, "A1", "Cluster entry curves P_i(q) = σ_i + ΔP_perf(q) + ΔP_nwb(q)  — solver lookup tables, MPa", f_bold)
 put(wc, "A2", "q grid spans 0…Q so any split can be represented. Inactive clusters return 0 and are skipped by the solver.", f_note)
 hdr(wc, 4, 1, ["k", "q, m³/min"] + [f"=Inputs!A{CL0+j}" for j in range(NC)])
@@ -221,7 +248,7 @@ def q_of_p(pref, j):
 
 
 # =====================================================================  Distribution
-wd = wb.create_sheet("Distribution")
+wd = wb.create_sheet(sn("Distribution"))
 put(wd, "A1", "Flow distribution — common operating point (Σq = Q, equal casing pressure)", f_title)
 wd.column_dimensions["A"].width = 30
 wd.column_dimensions["B"].width = 13
@@ -266,7 +293,7 @@ for j in range(NC):
     fcell(wd, r, 11, f"=IF(F{r}>0,Inputs!G{ir}*H{r}^Inputs!$B$11,0)", "0.000")
     fcell(wd, r, 12, f"=IF(F{r}>0,H{r}/Inputs!$B$20-1,0)", "+0.0%;-0.0%;0.0%")
     fcell(wd, r, 13, f"=IF(F{r}>0,H{r},1000000000)", "0.000", fill_help)
-wd["B13"] = "=MAX(H4:H15)/MIN(M4:M15)"
+wd["B13"] = T("=MAX(H4:H15)/MIN(M4:M15)")
 for col, w in zip("DEFGHIJKLM", (12, 10, 7, 10, 11, 9, 12, 12, 13, 11)):
     wd.column_dimensions[col].width = w
 
@@ -288,7 +315,7 @@ for k in range(NG):
     fcell(wd, r, 31, f"=SUM(S{r}:AD{r})", "0.0000")
 
 # =====================================================================  ChartData (conceptual LE plot)
-wch = wb.create_sheet("ChartData")
+wch = wb.create_sheet(sn("ChartData"))
 put(wch, "A1", "Chart helpers. #N/A is intentional: Excel skips #N/A points, so switched-off clusters disappear from the chart.", f_note)
 put(wch, "A2", "Y = casing pressure minus the lowest active cluster stress (MPa), so the axis autoscale stays readable.", f_note)
 hdr(wch, 4, 1, ["q, m³/min"] + [f"=Inputs!A{CL0+j}" for j in range(NC)] + ["P* line", "op q", "op P"])
@@ -308,10 +335,10 @@ for j in range(NC):
     fcell(wch, r, 16, f"=IF(Inputs!D{CL0+j}>0,Distribution!$B$9-Distribution!$B$3,NA())", "0.000")
 
 ch = ScatterChart()
-ch.title = "Conceptual LE plot: cluster entry curves vs common casing pressure"
+ch.title = T("Conceptual LE plot: cluster entry curves vs common casing pressure")
 ch.style = 13
-ch.x_axis.title = "cluster rate, m³/min"
-ch.y_axis.title = "pressure above lowest cluster stress, MPa"
+ch.x_axis.title = T("cluster rate, m³/min")
+ch.y_axis.title = T("pressure above lowest cluster stress, MPa")
 ch.height, ch.width = 11, 20
 xref = Reference(wch, min_col=1, min_row=5, max_row=4 + NCH)
 for j in range(NC):
@@ -325,7 +352,7 @@ s.graphicalProperties.line.solidFill = "000000"
 s.marker.symbol = "none"
 ch.series.append(s)
 s = Series(Reference(wch, min_col=16, min_row=5, max_row=4 + NC), Reference(wch, min_col=15, min_row=5, max_row=4 + NC),
-           title="operating points")
+           title=T("operating points"))
 s.marker.symbol = "circle"
 s.marker.size = 7
 s.graphicalProperties.line.noFill = True
@@ -335,7 +362,7 @@ ch.y_axis.delete = False
 wd.add_chart(ch, "P3")
 
 # =====================================================================  SDT
-wsd = wb.create_sheet("SDT")
+wsd = wb.create_sheet(sn("SDT"))
 put(wsd, "A1", "Step-down / step-rate test analysis:  BHP − ISIP = a·Q² + b·Q^β   (a, b ≥ 0)", f_title)
 put(wsd, "A2", "Use pressures at the same time after each rate change. Pre-proppant test fixes open perforations; end-of-stage test measures erosion.", f_note)
 sdt = case["sdt"]
@@ -354,7 +381,7 @@ def sdt_block(c0, title, steps):
     for i, (lab, v, fmt) in enumerate(params):
         put(wsd, f"{C(0)}{4+i}", lab)
         inp(wsd, f"{C(1)}{4+i}", v, fmt)
-    dv = DataValidation(type="list", formula1='"BH,Surface"'); wsd.add_data_validation(dv); dv.add(f"{C(1)}5")
+    dv = DataValidation(type="list", formula1=T('"BH,Surface"')); wsd.add_data_validation(dv); dv.add(f"{C(1)}5")
     hdr(wsd, 12, c0, ["Rate, m³/min", "Pressure, MPa", "Use", "BHP, MPa", "y = BHP−ISIP", "x1 = Q²", "x2 = Q^β", "Fit, MPa"])
     for i in range(10):
         r = 13 + i
@@ -401,15 +428,15 @@ def sdt_block(c0, title, steps):
         fcell(wsd, r, c0 + 1, f'=IF(ISNUMBER({C(1)}43),{C(1)}43/({C(0)}{r}*{C(1)}9^2),"∞")', "0.0", fill_res)
     # chart
     sc = ScatterChart()
-    sc.title = title
+    sc.title = T(title)
     sc.style = 13
-    sc.x_axis.title = "rate, m³/min"
-    sc.y_axis.title = "BHP − ISIP, MPa"
+    sc.x_axis.title = T("rate, m³/min")
+    sc.y_axis.title = T("BHP − ISIP, MPa")
     sc.height, sc.width = 7.5, 13
     xr = Reference(wsd, min_col=c0, min_row=13, max_row=22)
-    s1 = Series(Reference(wsd, min_col=c0 + 4, min_row=13, max_row=22), xr, title="measured")
+    s1 = Series(Reference(wsd, min_col=c0 + 4, min_row=13, max_row=22), xr, title=T("measured"))
     s1.marker.symbol = "circle"; s1.marker.size = 7; s1.graphicalProperties.line.noFill = True
-    s2 = Series(Reference(wsd, min_col=c0 + 7, min_row=13, max_row=22), xr, title="fit")
+    s2 = Series(Reference(wsd, min_col=c0 + 7, min_row=13, max_row=22), xr, title=T("fit"))
     s2.marker.symbol = "none"; s2.smooth = True
     sc.series += [s1, s2]
     sc.x_axis.delete = False
@@ -430,7 +457,7 @@ put(wsd, "A73", "Implied end diameter at Cd_max, mm")
 fcell(wsd, 73, 2, '=IF(AND(ISNUMBER(B72),ISNUMBER(K43)),SQRT(K43/(B72*Inputs!B8)),"n/a")', "0.00", fill_res)
 
 # =====================================================================  Erosion
-we = wb.create_sheet("Erosion")
+we = wb.create_sheet(sn("Erosion"))
 put(we, "A1", "Perforation erosion through the pump schedule (lumped, Long et al. 2018)", f_title)
 we.column_dimensions["A"].width = 38
 pe = [(3, "Open perforations n", '=IF(Inputs!B16="SDT",SDT!B72,Inputs!B19)', "0.0"),
@@ -507,10 +534,10 @@ put(we, "A57", "Set Inputs!B13 = Yes to run the model with this α. β cannot be
 put(we, "A58", "Column O shows #N/A after the schedule ends on purpose (chart gaps).", f_note)
 
 ec = ScatterChart()
-ec.title = "Perforation friction through the stage"
+ec.title = T("Perforation friction through the stage")
 ec.style = 13
-ec.x_axis.title = "time, min"
-ec.y_axis.title = "ΔP_perf, MPa"
+ec.x_axis.title = T("time, min")
+ec.y_axis.title = T("ΔP_perf, MPa")
 ec.height, ec.width = 8, 15
 xr = Reference(we, min_col=2, min_row=T0, max_row=TE)
 s = Series(Reference(we, min_col=15, min_row=T0 - 1, max_row=TE), xr, title_from_data=True)
@@ -523,7 +550,7 @@ for col, w in zip("BCDEFGHIJKLMNOPQ", [13] * 16):
     we.column_dimensions[col].width = w
 
 # =====================================================================  Design
-wg = wb.create_sheet("Design")
+wg = wb.create_sheet(sn("Design"))
 put(wg, "A1", "Design — perforation friction targets", f_title)
 wg.column_dimensions["A"].width = 34
 hdr(wg, 3, 1, ["Cluster", "Shots", "d, mm", "ΔP_perf start, MPa", "ΔP_perf end (lumped erosion), MPa"])
@@ -573,6 +600,6 @@ for col in "BCDEFGHI":
     wg.column_dimensions[col].width = 14
 
 order = ["README", "Inputs", "SDT", "Erosion", "Distribution", "Design", "LE_Curves", "ChartData"]
-wb._sheets = [wb[n] for n in order]
+wb._sheets = [wb[sn(n)] for n in order]
 wb.save(OUT)
 print("saved", OUT)

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limited Entry Calculator</title>
+<meta name="description" content="Plug & Perf limited-entry calculator: perforation friction, erosion, SRT/SDT calibration and cluster flow distribution. SI units. Excel + Python.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1b1d21;--muted:#5d6370;--line:#e3e4e8;--acc:#1f5fbf;--acc2:#e8f0fc;--warn:#fff6db;--warnb:#f0d27a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121417;--card:#1b1e23;--ink:#e8eaed;--muted:#9aa1ad;--line:#2c3038;--acc:#7fb0ff;--acc2:#1d2a3d;--warn:#2f2a17;--warnb:#6b5a22}}
+:root[data-theme="dark"]{--bg:#121417;--card:#1b1e23;--ink:#e8eaed;--muted:#9aa1ad;--line:#2c3038;--acc:#7fb0ff;--acc2:#1d2a3d;--warn:#2f2a17;--warnb:#6b5a22}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Inter,Arial,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+h2{font-size:20px;margin:40px 0 12px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:12px 0}
+.note{background:var(--warn);border:1px solid var(--warnb);border-radius:10px;padding:10px 14px;font-size:14px}
+.dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.dl a{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-decoration:none;color:var(--ink)}
+.dl a:hover{border-color:var(--acc)}
+.dl b{display:block;color:var(--acc)}
+.dl span{font-size:13px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.tbl{overflow-x:auto}
+ol li,ul li{margin:6px 0}
+img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+figure{margin:16px 0}
+figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+code{font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--acc2);padding:1px 5px;border-radius:4px}
+.eq{font-family:"JetBrains Mono",monospace;font-size:14px;background:var(--acc2);padding:10px 12px;border-radius:8px;overflow-x:auto}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.kpi div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi b{font-size:22px;display:block}
+.kpi span{font-size:13px;color:var(--muted)}
+small{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Limited Entry Calculator — Plug &amp; Perf</h1>
+<p class="sub">Perforation friction · erosion over time · SRT/SDT calibration · cluster flow distribution (conceptual LE plot). SI units. Excel + Python.</p>
+<div class="note">All numbers on this page come from a <b>synthetic demo case</b> to show the workflow. Replace them with real well data.</div>
+
+<h2>Download</h2>
+<div class="dl">
+<a href="LE_Calculator.xlsx" download><b>LE_Calculator.xlsx</b><span>Excel tool · live formulas, no macros</span></a>
+<a href="frac-limited-entry.zip" download><b>Full package (.zip)</b><span>Excel + Python engine + demo case + checks</span></a>
+<a href="PROPOSAL.md"><b>PROPOSAL.md</b><span>Scope, data needed, sources</span></a>
+<a href="https://github.com/andreynessm-beep/frac-limited-entry"><b>Source code</b><span>GitHub repository</span></a>
+</div>
+
+<h2>What it covers</h2>
+<div class="card tbl"><table>
+<tr><th>Requirement</th><th>Where</th><th>How</th></tr>
+<tr><td>Perforation friction ΔP_perf (shots, diameter, Cd)</td><td>Excel → Design, Inputs</td><td>Orifice equation; friction matrix shots × entry hole; shots needed for a target ΔP</td></tr>
+<tr><td>Perforation erosion (Cd and diameter vs time)</td><td>Excel → Erosion · Python</td><td>Long et al. (2018): Cd rounding (fast) + diameter growth (slow), time-marched through the pump schedule</td></tr>
+<tr><td>Calibration on SRT/SDT</td><td>Excel → SDT, Erosion · Python</td><td>Fits BHP − ISIP = a·Q² + b·Q^β (a, b ≥ 0); erosion coefficient from pre-proppant and end-of-stage tests</td></tr>
+<tr><td>Flow distribution, common operating point</td><td>Excel → Distribution · Python</td><td>Equal casing pressure for all clusters, Σq = Q; entry curves σᵢ + ΔP_perf + ΔP_nwb against the common pressure line</td></tr>
+</table></div>
+
+<div class="eq">ΔP_perf = 8·ρ·q² / (π²·n²·d⁴·Cd²) &nbsp;→&nbsp; ΔP[MPa] = 225.16·ρ·q² / (n²·d⁴·Cd²) &nbsp;(q m³/min, d mm, ρ kg/m³)<br>
+dD/dt = α·C·v² &nbsp;&nbsp; dCd/dt = β·C·v²·(1 − Cd/Cd_max)</div>
+
+<h2>Beyond a standard LE spreadsheet</h2>
+<ol>
+<li><b>Identifiability handled explicitly.</b> A step-down test resolves only <code>n·Cd·d²</code>: 30 holes at Cd 0.56 and 19.8 holes at Cd 0.85 give an identical test. The tool reports A_eff with an N(Cd) table. Calibration order: pre-proppant SDT fixes n → end-of-stage SDT measures erosion → in-stage friction trace separates Cd rounding from diameter growth.</li>
+<li><b>Erosion coupled to distribution.</b> The cluster taking more slurry erodes faster, loses friction and takes even more. Lumped models miss this runaway.</li>
+<li><b>Resolvability check.</b> Each SDT gets a "resolvable" flag and a 90% bootstrap interval — after heavy erosion the remaining friction can sink into pressure noise.</li>
+<li><b>Monte Carlo design screen</b> over cluster-stress uncertainty: start/end perf friction, % retained, P10 proppant uniformity, probability of meeting the target.</li>
+<li><b>In-stage friction tracker</b> (Python): A_eff(t) from treating pressure, projected onto a non-decreasing curve (isotonic regression), so drops flag bridging, screen-out or net-pressure build-up.</li>
+</ol>
+
+<h2>Demo results (synthetic)</h2>
+<div class="kpi">
+<div><b>0.95 → 0.81</b><span>fluid uniformity, start → end of one stage, identical perforations</span></div>
+<div><b>10.1 → 3.9 MPa</b><span>perf friction, 6 × 6 shots @ 10.2 mm</span></div>
+<div><b>22.7 → 5.1 MPa</b><span>XLE 6 × 4 @ 10.2 mm: keeps 22%, still the most absolute friction</span></div>
+<div><b>30.2 vs 30</b><span>open perforations recovered from synthetic SDT</span></div>
+</div>
+
+<figure><img src="out/01_le_operating_point.png" alt="Conceptual limited-entry plot at stage start and end"><figcaption>Conceptual LE plot: cluster entry curves against the common casing pressure, at stage start and after erosion.</figcaption></figure>
+<figure><img src="out/02_stage_erosion.png" alt="Perforation friction, rate share, Cd and diameter vs time"><figcaption>Coupled erosion and distribution: friction falls and the rate shares diverge through the stage.</figcaption></figure>
+<figure><img src="out/03_sdt_fit.png" alt="Step-down test fits before and after proppant"><figcaption>Step-down fits: perforation (Q²) and near-wellbore (Q^0.5) terms; open perforations given per assumed Cd.</figcaption></figure>
+<figure><img src="out/04_design_screen.png" alt="Monte Carlo design screen"><figcaption>Design screen: end-of-stage friction vs P10 proppant uniformity over 200 stress realisations.</figcaption></figure>
+
+<h2>Data needed to calibrate a real well (3–10 stages)</h2>
+<ol>
+<li>Pre-proppant step-down: rate and BHP per step (or surface pressure + TVD + pipe friction) and ISIP.</li>
+<li>End-of-stage step-down, same format.</li>
+<li>Pump schedule: duration, rate, proppant concentration per step.</li>
+<li>Treating pressure trace (optional — separates Cd rounding from diameter growth).</li>
+<li>Gun entry-hole diameter, shots per cluster, cluster MD, stress per cluster or its uncertainty.</li>
+<li>Optional: DAS, perforation imaging or erosion measurements for heel/toe bias.</li>
+</ol>
+
+<h2>Validation</h2>
+<ul>
+<li>Reproduces the published ResFrac example (80 bpm, 32 × 0.4 in, 10 ppg, Cd 0.85): 803 psi vs ~800 psi.</li>
+<li>Synthetic SDT with known truth: open perforations 30.2 vs 30; tortuosity within 10%.</li>
+<li>Erosion calibration on synthetic stages: α and β recovered within 1%.</li>
+<li>Excel vs Python on the same inputs: operating pressure, cluster rates, SDT coefficients, erosion end state, calibrated α agree to better than 0.01%.</li>
+</ul>
+
+<h2>Sources</h2>
+<ul>
+<li>ResFrac, <i>The A to Z Guide to Accelerating Continuous Improvement with ResFrac</i>, <a href="https://arxiv.org/abs/2205.14820">arXiv:2205.14820</a>.</li>
+<li>Long, Liu, Xu et al., <i>A Perforation-Erosion Model for Hydraulic-Fracturing Applications</i>, SPE Prod &amp; Oper 33(4), 2018; Long &amp; Xu, SPE J. 2017 (SPE-185173-PA).</li>
+<li><i>Construction and Application of a Quantitative Perforation Erosion Model Based on Field Experiments</i>, <a href="https://doi.org/10.3390/ma18112507">Materials 2025, 18, 2507</a>.</li>
+<li>Crump &amp; Conway (SPE 15474) Cd 0.56 → 0.89 via Romero (2000), cited in <a href="https://doi.org/10.3390/pr10061058">Processes 2022, 10, 1058</a>.</li>
+<li>Mondal et al., <i>Advancements in Step Down Tests…</i>, SPE-204147-MS, 2021.</li>
+<li>Merry &amp; Dalamarinis, tube-wave perforation assessment, SPE-201686-MS, 2020.</li>
+<li>PEER consortium (NSI), <a href="https://ogj.com/drilling-production/article/14279282/perforation-erosion-consortium-studies-limited-entry-treatments">OGJ 2022</a>: a 17% increase in perforation diameter → over 62% loss of limited-entry pressure.</li>
+</ul>
+</div>
+</body>
+</html>

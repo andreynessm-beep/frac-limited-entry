@@ -1,0 +1,35 @@
+{
+  "_comment": "SYNTHETIC demo case in SI. Replace every value with your well data. Units: MPa, m3/min, kg/m3, mm, m, min; proppant = kg per m3 of clean fluid.",
+  "units": "SI",
+  "rho_fluid": 1006,
+  "sg_prop": 2.65,
+  "prop_bias": 0.0,
+  "wb_grad_mpa_m": 0.0,
+  "wb_q_ref_m3min": 14.0,
+  "dt_min": 1.0,
+  "clusters": [
+    {"name": "C1 heel", "md_m": 4572, "sigma_mpa": 55.2, "n_perf": 6, "d_mm": 10.2, "cd": 0.56, "k_nwb": 0.5},
+    {"name": "C2",      "md_m": 4584, "sigma_mpa": 56.2, "n_perf": 6, "d_mm": 10.2, "cd": 0.56, "k_nwb": 0.5},
+    {"name": "C3",      "md_m": 4596, "sigma_mpa": 54.5, "n_perf": 6, "d_mm": 10.2, "cd": 0.56, "k_nwb": 0.5},
+    {"name": "C4",      "md_m": 4608, "sigma_mpa": 56.9, "n_perf": 6, "d_mm": 10.2, "cd": 0.56, "k_nwb": 0.5},
+    {"name": "C5",      "md_m": 4620, "sigma_mpa": 55.5, "n_perf": 6, "d_mm": 10.2, "cd": 0.56, "k_nwb": 0.5},
+    {"name": "C6 toe",  "md_m": 4632, "sigma_mpa": 53.8, "n_perf": 6, "d_mm": 10.2, "cd": 0.56, "k_nwb": 0.5}
+  ],
+  "schedule": [[10, 14, 0], [20, 14, 60], [20, 14, 120], [20, 14, 180], [20, 14, 240], [20, 14, 240], [5, 14, 0]],
+  "erosion": {"alpha": 3.1e-13, "beta": 1.0e-10, "cd_max": 0.89},
+  "sdt": {
+    "_comment": "Bottomhole pressure (MPa) at the end of each step vs rate (m3/min); isip_bh_mpa = ISIP after the last step. Synthetic truth: 30 open perfs, Cd 0.56 -> 0.89, D 10.2 -> 12.1 mm, noise ~0.1 MPa.",
+    "d_mm": 10.16,
+    "isip_bh_mpa": 57.6,
+    "steps_pre":  [[14, 74.22], [11, 68.24], [8, 63.90], [5, 60.69]],
+    "steps_post": [[14, 61.24], [11, 60.09], [8, 59.27], [5, 58.50]]
+  },
+  "designs": [
+    {"label": "6 x 6 @ 10.2 mm", "n_perf": 6, "d_mm": 10.2},
+    {"label": "6 x 4 @ 10.2 mm (XLE)", "n_perf": 4, "d_mm": 10.2},
+    {"label": "6 x 8 @ 10.2 mm", "n_perf": 8, "d_mm": 10.2},
+    {"label": "6 x 6 @ 8.9 mm", "n_perf": 6, "d_mm": 8.9},
+    {"label": "tapered 7-7-6-6-5-5", "n_perf": [7, 7, 6, 6, 5, 5], "d_mm": 10.2}
+  ],
+  "monte_carlo": {"sigma_sd_mpa": 1.0, "n_real": 200, "target_ui": 0.8}
+}
